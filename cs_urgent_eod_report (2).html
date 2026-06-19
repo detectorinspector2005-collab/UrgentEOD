@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CS Urgent Support — EOD Report</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --purple: #5000b3;
+  --purple-dark: #3a0082;
+  --purple-light: #7a30d6;
+  --orange: #FF6400;
+  --white: #ffffff;
+  --bg: #f4f3f8;
+  --surface: #ffffff;
+  --border: #e2dff0;
+  --text: #1a1028;
+  --muted: #6b5f82;
+  --success: #1ecb6e;
+  --sidebar-w: 270px;
+}
+
+body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+/* ── HEADER ── */
+header {
+  background: linear-gradient(135deg, var(--purple-dark) 0%, var(--purple) 60%, var(--purple-light) 100%);
+  padding: 0 24px; height: 56px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  box-shadow: 0 4px 20px rgba(80,0,179,0.3);
+  position: sticky; top: 0; z-index: 100; flex-shrink: 0;
+}
+.header-left { display: flex; align-items: center; gap: 12px; }
+.logo-badge {
+  width: 36px; height: 36px; border-radius: 8px; background: var(--orange);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 14px; color: white; letter-spacing: -1px; flex-shrink: 0;
+}
+.header-title h1 { font-size: 15px; font-weight: 700; color: white; letter-spacing: -0.2px; }
+.header-title p { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 1px; }
+.header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.header-reset-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  color: white; border-radius: 8px; padding: 7px 14px;
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  font-family: inherit; transition: background .15s; white-space: nowrap;
+}
+.header-reset-btn:hover { background: rgba(255,255,255,0.25); }
+
+/* ── APP SHELL ── */
+.app-shell { display: flex; flex: 1; min-height: 0; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar-w); min-width: var(--sidebar-w);
+  background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  height: calc(100vh - 56px); position: sticky; top: 56px; overflow-y: auto;
+}
+.sb-section { padding: 18px 16px; border-bottom: 1px solid var(--border); }
+.sb-label {
+  font-size: 11px; font-weight: 800; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.sb-label::after { content:''; flex:1; height:1px; background: var(--border); }
+.up-card {
+  border: 2px dashed var(--border); border-radius: 10px;
+  padding: 16px 12px; text-align: center; cursor: pointer;
+  transition: border-color .2s, background .2s; position: relative; background: var(--bg);
+}
+.up-card:hover { border-color: var(--purple); background: #f3efff; }
+.up-card input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.up-icon {
+  width: 36px; height: 36px; background: linear-gradient(135deg, var(--purple), var(--purple-light));
+  border-radius: 8px; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px;
+}
+.up-icon svg { width: 18px; height: 18px; fill: white; }
+.up-card h3 { font-size: 12px; font-weight: 700; margin-bottom: 3px; }
+.up-card p { font-size: 10px; color: var(--muted); line-height: 1.4; }
+.up-card.loaded { border-color: var(--success); border-style: solid; background: #f0fdf4; }
+.up-card.loaded .up-icon { background: var(--success); }
+.file-name { font-size: 10px; color: var(--success); font-weight: 700; margin-top: 6px; word-break: break-all; }
+.sb-input-row { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+.sb-input-row:last-child { margin-bottom: 0; }
+.sb-input-row label { font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+.sb-input {
+  width: 100%; border: 1px solid var(--border); border-radius: 7px;
+  padding: 7px 10px; font-size: 12px; font-weight: 600; color: var(--text);
+  background: var(--bg); outline: none; font-family: inherit; transition: border-color .15s;
+}
+.sb-input:focus { border-color: var(--purple); background: white; }
+.sb-input::placeholder { color: #bbb; font-weight: 400; }
+.sb-input-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+.sb-input-2col .sb-input-row { margin-bottom: 0; }
+.sb-spacer { flex: 1; }
+.action-section { padding: 16px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border); }
+.act-btn {
+  width: 100%; border: none; border-radius: 9px; padding: 10px 14px;
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all .15s; font-family: inherit;
+}
+.act-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.act-btn.primary { background: var(--purple); color: white; }
+.act-btn.primary:hover { background: var(--purple-dark); }
+.act-btn.ghost { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+.act-btn.ghost:hover { border-color: var(--purple); color: var(--purple); }
+
+/* ── WORKSPACE ── */
+.workspace { flex: 1; overflow-y: auto; padding: 24px 24px 60px; box-sizing: border-box; min-width: 0; display: flex; flex-direction: column; align-items: center; }
+.workspace > * { width: 100%; max-width: 1100px; }
+
+/* ── REPORT HEADER ── */
+.rpt-header { background: var(--purple); padding: 16px 22px 14px; border-radius: 14px 14px 0 0; }
+.rpt-header-inner { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.rpt-title { font-size: 20px; font-weight: 800; color: white; letter-spacing: -0.3px; margin-bottom: 10px; }
+.rpt-title-accent { color: var(--orange); }
+.rpt-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.rpt-badge {
+  background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3);
+  color: white; padding: 4px 14px; border-radius: 20px;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.2px;
+}
+.rpt-body { background: var(--bg); padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; border-radius: 0 0 14px 14px; box-sizing: border-box; width: 100%; }
+
+/* Section card */
+.rpt-section-card { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); padding: 16px 18px; box-sizing: border-box; min-width: 0; overflow: hidden; }
+.rpt-section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.rpt-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.rpt-dot.purple { background: var(--purple); }
+.rpt-dot.orange { background: var(--orange); }
+.rpt-section-label { font-size: 14px; font-weight: 700; color: var(--text); flex: 1; }
+
+/* KPI cards */
+.rpt-kpi-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.rpt-kpi-row.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); }
+.rpt-kpi-row.grid5 { display: grid; grid-template-columns: repeat(5, 1fr); }
+.rpt-kpi-card {
+  flex: 1 1 120px; border-radius: 8px; padding: 10px 12px 10px 14px;
+  background: var(--surface); border-left: 3px solid transparent;
+  border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.rpt-kpi-card.bordered-purple { border-left-color: var(--purple); }
+.rpt-kpi-card.bordered-orange { border-left-color: var(--orange); }
+.rpt-kpi-label { font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; line-height: 1.3; }
+.rpt-kpi-val { font-size: 22px; font-weight: 800; color: var(--purple); line-height: 1; }
+.rpt-kpi-val.orange { color: var(--orange); }
+.rpt-kpi-val.muted { color: var(--muted); }
+
+/* Tables */
+.rpt-table { width: 100%; border-collapse: collapse; }
+.rpt-table th {
+  font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px;
+  padding: 7px 10px; text-align: center; background: var(--bg); border-bottom: 1px solid var(--border);
+}
+.rpt-table th:first-child { text-align: left; }
+.rpt-table td { padding: 8px 10px; font-size: 13px; font-weight: 600; text-align: center; border-bottom: 1px solid var(--border); color: var(--text); }
+.rpt-table td:first-child { text-align: left; }
+.rpt-table tr:last-child td { border-bottom: none; }
+.rpt-table tr:hover td { background: #f9f7ff; }
+.rpt-total-row td { background: linear-gradient(135deg,#f0ebff,#e8e0ff) !important; font-weight: 800 !important; color: var(--purple-dark) !important; }
+
+.rate-pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-weight: 800; font-size: 12px; }
+.rate-good { background: #e8f8ee; color: #0e7a38; }
+.rate-mid { background: #fff4e5; color: #b86a00; }
+.rate-low { background: #fdedea; color: #c22a1d; }
+.rate-na { background: #eeebf6; color: #8a82a6; }
+.task-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-weight: 800; font-size: 11px; }
+.task-urgent { background: rgba(255,100,0,0.1); color: #c24e00; border: 1px solid rgba(255,100,0,0.2); }
+.task-p3nm { background: rgba(80,0,179,0.08); color: var(--purple); border: 1px solid rgba(80,0,179,0.15); }
+.empty-cell { color: #b6afcb; font-weight: 500; }
+.section-empty { padding: 30px 20px; text-align: center; color: var(--muted); font-size: 12.5px; font-weight: 600; }
+.section-empty svg { width: 28px; height: 28px; fill: var(--border); margin-bottom: 8px; display:block; margin-left:auto; margin-right:auto; }
+
+/* ── CHARTS ── */
+.chart-divider { height: 1px; background: var(--border); margin: 18px 0 16px; }
+.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.chart-block { display: flex; flex-direction: column; gap: 10px; }
+.chart-block-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+.chart-wrap { position: relative; width: 100%; }
+.chart-wrap.bar-wrap { min-height: 200px; }
+.chart-wrap.donut-wrap { height: 200px; display: flex; align-items: center; justify-content: center; }
+.chart-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 6px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--muted); }
+.legend-dot { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+.donut-legend { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+
+/* Export + subject line */
+.rpt-export-wrap { position: relative; }
+.rpt-export-menu {
+  display: none; position: absolute; top: calc(100% + 6px); right: 0;
+  background: white; border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.18); min-width: 190px; z-index: 500; overflow: hidden;
+  animation: menuPop .15s ease;
+}
+.rpt-export-menu.open { display: block; }
+@keyframes menuPop { from { opacity:0; transform: translateY(-4px); } to { opacity:1; transform: translateY(0); } }
+.rpt-export-item {
+  width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+  background: none; border: none; cursor: pointer; font-family: inherit;
+  font-size: 12px; font-weight: 600; color: var(--text); text-align: left; transition: background .15s;
+}
+.rpt-export-item:hover { background: #f3efff; }
+.rpt-export-item svg { width: 15px; height: 15px; flex-shrink: 0; color: var(--purple); }
+.capture-footer { text-align: center; font-size: 11px; font-weight: 500; color: var(--muted); padding: 14px 20px 16px; border-top: 1px solid var(--border); margin: 4px 20px 0; letter-spacing: 0.2px; box-sizing: border-box; }
+.subject-line-bar { margin-top: 16px; padding: 0 0 24px; }
+.subject-line-meta { font-size: 11px; color: var(--muted); text-align: center; margin-bottom: 10px; font-weight: 500; }
+.subject-line-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; }
+.subject-line-label { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+.subject-line-hint { font-size: 10px; font-weight: 400; color: var(--muted); }
+.subject-line-row { display: flex; align-items: center; gap: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; }
+.subject-line-text { flex: 1; font-size: 13px; font-weight: 500; color: var(--text); }
+.subject-copy-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--orange); color: white; border: none; border-radius: 7px; padding: 7px 14px;
+  font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background .15s; white-space: nowrap; flex-shrink: 0;
+}
+.subject-copy-btn:hover { background: #d95500; }
+#captureZone { background: var(--bg); width: 100%; box-sizing: border-box; border-radius: 14px; overflow: hidden; }
+
+/* Toast + spinner */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 999;
+  background: var(--text); color: white; border-radius: 10px; padding: 12px 18px;
+  font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px;
+  transform: translateY(80px); opacity: 0; transition: all .3s; pointer-events: none;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast svg { width: 16px; height: 16px; fill: var(--success); flex-shrink: 0; }
+.spinner-overlay { position: fixed; inset: 0; z-index: 999; background: rgba(26,16,40,.5); display: none; align-items: center; justify-content: center; }
+.spinner-overlay.show { display: flex; }
+.spinner { width: 44px; height: 44px; border: 4px solid rgba(255,255,255,.2); border-top-color: white; border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+@media (max-width: 900px) {
+  .app-shell { flex-direction: column; }
+  .sidebar { width: 100%; min-width: 0; height: auto; position: relative; top: 0; }
+  .chart-row { grid-template-columns: 1fr; }
+}
+
+/* ── EOD INSIGHTS ── */
+.analysis-bar { margin: 0 20px 8px; box-sizing: border-box; }
+.analysis-title-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.analysis-title { font-size: 13px; font-weight: 800; color: var(--text); }
+.analysis-hint { font-size: 10px; color: var(--muted); font-weight: 500; }
+.analysis-gen-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--purple); color: white;
+  border: none; border-radius: 8px; padding: 7px 14px;
+  font-size: 11px; font-weight: 700; cursor: pointer;
+  font-family: inherit; transition: background .15s;
+}
+.analysis-gen-btn:hover { background: var(--purple-dark); }
+.analysis-gen-btn:disabled { background: #b0a0d0; cursor: not-allowed; }
+.analysis-body {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px 20px;
+  font-size: 14px; line-height: 1.8; color: var(--text);
+  min-height: 100px; outline: none; transition: border-color .15s;
+}
+.analysis-body:focus { border-color: var(--purple); }
+.analysis-body p { margin: 0 0 8px; }
+.analysis-body p:last-child { margin-bottom: 0; }
+.analysis-placeholder { color: var(--muted); font-style: italic; }
+.analysis-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+.analysis-footer-note { font-size: 10px; color: var(--muted); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo-badge">DI</div>
+    <div class="header-title">
+      <h1>CS Urgent Support — End of Day Report</h1>
+      <p>Workforce Management · EOD Snapshot</p>
+    </div>
+  </div>
+  <div class="header-actions">
+    <div class="rpt-export-wrap">
+      <button class="header-reset-btn" onclick="toggleExportMenu()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zm-8 2V5h2v6h1.17L12 13.17 9.83 11H11zm-6 7h14v2H5v-2z"/></svg>
+        Export
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+      </button>
+      <div class="rpt-export-menu" id="rptExportMenu">
+        <button class="rpt-export-item" onclick="doExportImage('copy')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy as Image
+        </button>
+        <button class="rpt-export-item" onclick="doExportImage('download')">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zm-8 2V5h2v6h1.17L12 13.17 9.83 11H11zm-6 7h14v2H5v-2z"/></svg>
+          Download as PNG
+        </button>
+      </div>
+    </div>
+    <button class="header-reset-btn" onclick="resetAll()">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+      Reset
+    </button>
+  </div>
+</header>
+
+<div class="app-shell">
+
+  <aside class="sidebar">
+    <div class="sb-section">
+      <div class="sb-label">Report Date</div>
+      <input class="sb-input" id="reportDate" type="date" style="cursor:pointer;">
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label">Attendance</div>
+      <div class="sb-input-2col">
+        <div class="sb-input-row"><label>Actual</label><input class="sb-input" id="attActual" type="number" min="0" placeholder="0"></div>
+        <div class="sb-input-row"><label>Expected</label><input class="sb-input" id="attExpected" type="number" min="0" placeholder="0"></div>
+      </div>
+      <div class="sb-input-2col" style="margin-top:0;">
+        <div class="sb-input-row"><label>Leave</label><input class="sb-input" id="attLeave" type="number" min="0" placeholder="0"></div>
+        <div class="sb-input-row"><label>Rest Day</label><input class="sb-input" id="attRestDay" type="number" min="0" placeholder="0"></div>
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label">Urgent SLA per P Level</div>
+      <div class="sb-input-2col">
+        <div class="sb-input-row"><label>P1</label><input class="sb-input" id="slaP1" type="text" placeholder="e.g. 100%"></div>
+        <div class="sb-input-row"><label>P2</label><input class="sb-input" id="slaP2" type="text" placeholder="e.g. 98%"></div>
+        <div class="sb-input-row"><label>P3</label><input class="sb-input" id="slaP3" type="text" placeholder="e.g. 95%"></div>
+        <div class="sb-input-row"><label>P4</label><input class="sb-input" id="slaP4" type="text" placeholder="e.g. 90%"></div>
+      </div>
+      <div class="sb-input-row" style="margin-top:6px;">
+        <label>P3 NM</label>
+        <input class="sb-input" id="slaP3NM" type="text" placeholder="e.g. 92%">
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label">Agent Performance File</div>
+      <div class="up-card" id="agentUploadBox">
+        <input type="file" id="agentFileInput" accept=".csv,.xlsx,.xls">
+        <div class="up-icon">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 2l5 5h-5V4zM8 13h3v3h2v-3h3l-4-4-4 4z"/></svg>
+        </div>
+        <h3>Upload Agent Table</h3>
+        <p>Bookings_Rpt .xlsx, .xls or .csv</p>
+        <div class="file-name" id="agentFileName"></div>
+      </div>
+    </div>
+
+    <div class="action-section">
+      <button class="act-btn primary" onclick="renderReport()">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z"/></svg>
+        Generate Report
+      </button>
+      <button class="act-btn ghost" onclick="resetAll()">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+        Reset All
+      </button>
+    </div>
+    <div class="sb-spacer"></div>
+  </aside>
+
+  <main class="workspace">
+    <div id="captureZone">
+
+      <div class="rpt-header">
+        <div class="rpt-header-inner">
+          <div>
+            <div class="rpt-title">CS Urgent Support &nbsp;<span class="rpt-title-accent">EOD Report</span></div>
+            <div class="rpt-badges">
+              <span class="rpt-badge" id="rptDateBadge">Date not set</span>
+              <span class="rpt-badge">CS Urgent Team</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rpt-body">
+
+        <!-- Attendance -->
+        <div class="rpt-section-card">
+          <div class="rpt-section-header">
+            <span class="rpt-dot purple"></span>
+            <span class="rpt-section-label">Attendance</span>
+          </div>
+          <div class="rpt-kpi-row grid4">
+            <div class="rpt-kpi-card bordered-purple"><div class="rpt-kpi-label">Actual</div><div class="rpt-kpi-val" id="dispActual">—</div></div>
+            <div class="rpt-kpi-card bordered-purple"><div class="rpt-kpi-label">Expected</div><div class="rpt-kpi-val" id="dispExpected">—</div></div>
+            <div class="rpt-kpi-card bordered-orange"><div class="rpt-kpi-label">Leave</div><div class="rpt-kpi-val orange" id="dispLeave">—</div></div>
+            <div class="rpt-kpi-card" style="border-left-color:#9ca3af;"><div class="rpt-kpi-label">Rest Day</div><div class="rpt-kpi-val muted" id="dispRestDay">—</div></div>
+          </div>
+        </div>
+
+        <!-- KPI Strip + Donut row — shown only when agent data is loaded -->
+        <div class="rpt-section-card" id="miniChartsCard" style="display:none;">
+          <div class="rpt-section-header">
+            <span class="rpt-dot purple"></span>
+            <span class="rpt-section-label">Team Overview</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr auto;gap:28px;align-items:center;">
+
+            <!-- Left: KPI Strip -->
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <!-- Row 1: 3 KPI cards -->
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+                <div class="rpt-kpi-card bordered-purple">
+                  <div class="rpt-kpi-label">Total Handled</div>
+                  <div class="rpt-kpi-val" id="kpiHandled">—</div>
+                </div>
+                <div class="rpt-kpi-card bordered-purple">
+                  <div class="rpt-kpi-label">Total Solved</div>
+                  <div class="rpt-kpi-val" id="kpiSolved">—</div>
+                </div>
+                <div class="rpt-kpi-card bordered-orange">
+                  <div class="rpt-kpi-label">Team Solved Rate</div>
+                  <div class="rpt-kpi-val orange" id="kpiRate">—</div>
+                </div>
+              </div>
+              <!-- Row 2: Urgent breakdown -->
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+                <div class="rpt-kpi-card bordered-orange">
+                  <div class="rpt-kpi-label">Urgent Handled</div>
+                  <div class="rpt-kpi-val orange" id="kpiUrgentHandled">—</div>
+                </div>
+                <div class="rpt-kpi-card bordered-orange">
+                  <div class="rpt-kpi-label">Urgent Solved</div>
+                  <div class="rpt-kpi-val orange" id="kpiUrgentSolved">—</div>
+                </div>
+                <div class="rpt-kpi-card bordered-orange">
+                  <div class="rpt-kpi-label">Urgent Solved Rate</div>
+                  <div class="rpt-kpi-val orange" id="kpiUrgentRate">—</div>
+                </div>
+              </div>
+              <!-- Row 3: P3 NM breakdown -->
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+                <div class="rpt-kpi-card bordered-purple">
+                  <div class="rpt-kpi-label">P3 NM Handled</div>
+                  <div class="rpt-kpi-val" id="kpiP3nmHandled">—</div>
+                </div>
+                <div class="rpt-kpi-card bordered-purple">
+                  <div class="rpt-kpi-label">P3 NM Solved</div>
+                  <div class="rpt-kpi-val" id="kpiP3nmSolved">—</div>
+                </div>
+                <div class="rpt-kpi-card bordered-purple">
+                  <div class="rpt-kpi-label">P3 NM Solved Rate</div>
+                  <div class="rpt-kpi-val" id="kpiP3nmRate">—</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Donut -->
+            <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:260px;">
+              <div class="chart-block-title">Workload by Task Group</div>
+              <div style="display:flex;align-items:center;gap:20px;">
+                <div style="width:150px;height:150px;flex-shrink:0;position:relative;"><canvas id="chartDonut"></canvas></div>
+                <div class="donut-legend" id="donutLegend"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Team Performance table + full-width bar chart -->
+        <div class="rpt-section-card">
+          <div class="rpt-section-header">
+            <span class="rpt-dot orange"></span>
+            <span class="rpt-section-label">Team Performance</span>
+          </div>
+          <div id="agentTableWrap">
+            <div class="section-empty">
+              <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+              Upload the Agent Performance file to populate this table.
+            </div>
+          </div>
+          <div id="chartsWrap" style="display:none;">
+            <div class="chart-divider"></div>
+            <div class="chart-block-title" style="margin-bottom:12px;">Solved Rate per Agent</div>
+            <div class="chart-wrap bar-wrap"><canvas id="chartBar"></canvas></div>
+            <div class="chart-legend" style="margin-top:10px;">
+              <div class="legend-item"><div class="legend-dot" style="background:#FF6400;border-radius:3px;"></div>Regular Urgent</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#5000b3;border-radius:3px;"></div>P3 NM</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Urgent SLA -->
+        <div class="rpt-section-card">
+          <div class="rpt-section-header">
+            <span class="rpt-dot purple"></span>
+            <span class="rpt-section-label">Urgent SLA per P Level</span>
+          </div>
+          <div class="rpt-kpi-row grid5">
+            <div class="rpt-kpi-card bordered-purple"><div class="rpt-kpi-label">P1</div><div class="rpt-kpi-val" id="dispP1">—</div></div>
+            <div class="rpt-kpi-card bordered-purple"><div class="rpt-kpi-label">P2</div><div class="rpt-kpi-val" id="dispP2">—</div></div>
+            <div class="rpt-kpi-card bordered-purple"><div class="rpt-kpi-label">P3</div><div class="rpt-kpi-val" id="dispP3">—</div></div>
+            <div class="rpt-kpi-card bordered-purple"><div class="rpt-kpi-label">P4</div><div class="rpt-kpi-val" id="dispP4">—</div></div>
+            <div class="rpt-kpi-card bordered-orange"><div class="rpt-kpi-label">P3 NM</div><div class="rpt-kpi-val orange" id="dispP3NM">—</div></div>
+          </div>
+        </div>
+
+      </div>
+
+
+      <!-- EOD Insights -->
+      <div class="analysis-bar" id="analysisBar">
+        <div class="analysis-title-row">
+          <span class="rpt-dot purple"></span>
+          <span class="analysis-title">EOD Insights</span>
+          <div id="analysisBtns" style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+            <span class="analysis-hint" id="analysisHint">Auto-generated · click to edit</span>
+            <button class="analysis-gen-btn" id="analysisGenBtn" onclick="generateInsights()">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V15a1 1 0 0 0-2 0v1.93A6 6 0 0 1 6.07 13H8a1 1 0 0 0 0-2H6.07A6 6 0 0 1 11 6.07V8a1 1 0 0 0 2 0V6.07A6 6 0 0 1 17.93 11H16a1 1 0 0 0 0 2h1.93A6 6 0 0 1 13 16.93z"/></svg>
+              Generate
+            </button>
+          </div>
+        </div>
+        <div class="analysis-body" id="analysisBody" contenteditable="true" spellcheck="true">
+          <p class="analysis-placeholder">Generate the report first, then click <strong>Generate</strong> here to summarize today's observations.</p>
+        </div>
+        <div class="analysis-footer">
+          <span class="analysis-footer-note" id="analysisStatus">Not yet generated</span>
+        </div>
+      </div>
+
+      <div class="capture-footer" id="captureFooter" style="display:none;">
+        CS Urgent Support EOD Report · <span id="footerDate">—</span> · Workforce Management Team · Generated <span id="footerGenTime">—</span>
+      </div>
+
+    </div><!-- /captureZone -->
+
+    <div class="subject-line-bar">
+      <div class="subject-line-meta">CS Urgent Support EOD Report · <span id="subjectDate">—</span> · Workforce Management Team</div>
+      <div class="subject-line-card">
+        <div class="subject-line-label">
+          Copy-Friendly Subject Line
+          <span class="subject-line-hint">Use this as your email subject or message header</span>
+        </div>
+        <div class="subject-line-row">
+          <div class="subject-line-text" id="subjectLineText">Workforce End-of-Day Report (CS Urgent) | —</div>
+          <button class="subject-copy-btn" onclick="copySubjectLine()">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+  <span id="toastMsg">Done</span>
+</div>
+<div class="spinner-overlay" id="spinner"><div class="spinner"></div></div>
+
+<script>
+/* ── STATE ── */
+let agentData = null;
+let chartBarInst = null, chartDonutInst = null;
+
+/* ── UTILS ── */
+function showToast(msg){ const t=document.getElementById('toast'); document.getElementById('toastMsg').textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2400); }
+function toggleExportMenu(){ document.getElementById('rptExportMenu').classList.toggle('open'); }
+document.addEventListener('click',(e)=>{ if(!e.target.closest('.rpt-export-wrap')) document.getElementById('rptExportMenu')?.classList.remove('open'); });
+function parseNum(v){ if(v===''||v===undefined||v===null) return null; const n=parseFloat(String(v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?null:n; }
+function normHeader(h){ return String(h||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+function findCol(headers,candidates){ const norm=headers.map(normHeader); for(const c of candidates){ const i=norm.findIndex(h=>h===normHeader(c)); if(i!==-1) return i; } for(const c of candidates){ const nc=normHeader(c); const i=norm.findIndex(h=>h.includes(nc)||nc.includes(h)); if(i!==-1) return i; } return -1; }
+const isP3NM = a => a.task.toLowerCase().includes('p3 nm')||a.task.toLowerCase().includes('p3nm');
+
+/* ── FILE UPLOAD ── */
+document.getElementById('agentFileInput').addEventListener('change',e=>handleAgentFile(e.target.files[0]));
+
+async function handleAgentFile(file){
+  if(!file) return;
+  const reader=new FileReader();
+  const isCSV=/\.csv$/i.test(file.name);
+  reader.onload=(e)=>{
+    try{
+      const wb=isCSV?XLSX.read(e.target.result,{type:'string'}):XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+      if(!rows.length){ showToast('File appears empty'); return; }
+      const headers=rows[0];
+      const nameIdx   =findCol(headers,['Updater name','staffname','name','agent']);
+      const taskIdx   =findCol(headers,['TASK','task']);
+      const handledIdx=findCol(headers,['Tickets Handled','ticketshandled','handled']);
+      const solvedIdx =findCol(headers,['Tickets solved','ticketssolved','solved']);
+      if(nameIdx===-1){ showToast('Could not find Name column'); return; }
+      const out=[];
+      for(let i=1;i<rows.length;i++){
+        const r=rows[i];
+        if(!r||r.every(c=>String(c).trim()==='')) continue;
+        const name=String(r[nameIdx]??'').trim();
+        if(!name) continue;
+        out.push({ name, task:taskIdx!==-1?String(r[taskIdx]??'').trim():'', handled:parseNum(r[handledIdx]), solved:parseNum(r[solvedIdx]) });
+      }
+      agentData=out;
+      document.getElementById('agentUploadBox').classList.add('loaded');
+      document.getElementById('agentFileName').textContent=file.name;
+      showToast(`Loaded ${out.length} agents`);
+    }catch(err){ console.error(err); showToast('Error reading file'); }
+  };
+  if(isCSV) reader.readAsText(file); else reader.readAsArrayBuffer(file);
+}
+
+/* ── HELPERS ── */
+function getTaskBadge(task){
+  if(!task) return '';
+  const t=task.toLowerCase();
+  if(t.includes('p3 nm')||t.includes('p3nm')) return `<span class="task-badge task-p3nm">${task}</span>`;
+  return `<span class="task-badge task-urgent">${task}</span>`;
+}
+function ratePill(pct){
+  if(pct===null||isNaN(pct)) return `<span class="rate-pill rate-na">—</span>`;
+  const cls=pct>=80?'rate-good':pct>=60?'rate-mid':'rate-low';
+  return `<span class="rate-pill ${cls}">${Math.round(pct)}%</span>`;
+}
+function barColor(agent){ return isP3NM(agent) ? '#5000b3' : '#FF6400'; }
+
+/* ── RENDER TABLE ── */
+function renderAgentTable(){
+  const wrap=document.getElementById('agentTableWrap');
+  if(!agentData||!agentData.length){
+    wrap.innerHTML=`<div class="section-empty"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>Upload the Agent Performance file to populate this table.</div>`;
+    document.getElementById('chartsWrap').style.display='none';
+  latestAttendance={actual:null,expected:null,leave:null,restDay:null};
+    return;
+  }
+  let totHandled=0, totSolved=0;
+  agentData.forEach(a=>{ totHandled+=(a.handled||0); totSolved+=(a.solved||0); });
+  const totRate=totHandled>0?(totSolved/totHandled)*100:null;
+  const sorted=[...agentData].sort((a,b)=>isP3NM(a)-isP3NM(b));
+  const rows=sorted.map(a=>{
+    const rate=(a.handled&&a.handled>0&&a.solved!==null)?(a.solved/a.handled)*100:null;
+    return `<tr>
+      <td>${a.name}</td>
+      <td>${getTaskBadge(a.task)}</td>
+      <td>${a.handled!==null?a.handled:'<span class="empty-cell">-</span>'}</td>
+      <td>${a.solved!==null?a.solved:'<span class="empty-cell">-</span>'}</td>
+      <td>${ratePill(rate)}</td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML=`<table class="rpt-table">
+    <thead><tr><th>Name</th><th>Task</th><th>Ticket Handled</th><th>Ticket Solved</th><th>Solved Rate</th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr class="rpt-total-row"><td>TOTAL</td><td>—</td><td>${totHandled}</td><td>${totSolved}</td><td>${ratePill(totRate)}</td></tr></tfoot>
+  </table>`;
+  document.getElementById('chartsWrap').style.display='';
+  document.getElementById('miniChartsCard').style.display='';
+  renderCharts(sorted, totHandled, totSolved, totRate);
+}
+
+/* ── RENDER CHARTS ── */
+function renderCharts(sorted, totHandled, totSolved, totRate){
+  destroyCharts();
+
+  /* 1. Horizontal Bar — Solved Rate per Agent */
+  const barSorted=[...sorted].sort((a,b)=>{
+    const ra=(a.handled&&a.handled>0&&a.solved!==null)?(a.solved/a.handled)*100:null;
+    const rb=(b.handled&&b.handled>0&&b.solved!==null)?(b.solved/b.handled)*100:null;
+    if(ra===null&&rb===null) return 0; if(ra===null) return 1; if(rb===null) return -1;
+    return rb-ra;
+  });
+  const barLabels=barSorted.map(a=>a.name);
+  const barVals=barSorted.map(a=>(a.handled&&a.handled>0&&a.solved!==null)?Math.round((a.solved/a.handled)*100):0);
+  const barColors=barSorted.map(a=>barColor(a));
+
+  const barCanvas=document.getElementById('chartBar');
+  const barH=Math.max(220, barLabels.length*44+40);
+  barCanvas.closest('.bar-wrap').style.height=barH+'px';
+
+  chartBarInst=new Chart(barCanvas.getContext('2d'),{
+    type:'bar',
+    data:{ labels:barLabels, datasets:[{ label:'Solved Rate', data:barVals, backgroundColor:barColors, borderRadius:5, maxBarThickness:28 }] },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ right:52 } },
+      plugins:{
+        legend:{display:false},
+        tooltip:{ backgroundColor:'#1a1028', titleColor:'#fff', bodyColor:'#e0d8f0', padding:10, cornerRadius:8, callbacks:{ label:ctx=>`${ctx.raw}% solved rate` } },
+        datalabels:{
+          anchor:'end', align:'end', clamp:true,
+          formatter: val => val + '%',
+          font:{ size:11, weight:'700', family:"'Plus Jakarta Sans', sans-serif" },
+          color: ctx => barColors[ctx.dataIndex]
+        }
+      },
+      scales:{
+        x:{ beginAtZero:true, min:0, max:100, grid:{color:'#e2dff0'}, ticks:{stepSize:20, font:{size:10}, color:'#6b5f82', callback:v=>v+'%'} },
+        y:{ grid:{display:false}, ticks:{font:{size:12,weight:'600'}, color:'#1a1028'} }
+      }
+    },
+    plugins:[ChartDataLabels]
+  });
+
+  /* 2. Donut — Workload by Task Group */
+  const urgentHandled=agentData.filter(a=>!isP3NM(a)).reduce((s,a)=>s+(a.handled||0),0);
+  const p3nmHandled  =agentData.filter(a=>isP3NM(a)).reduce((s,a)=>s+(a.handled||0),0);
+  const donutLabels  =['Regular Urgent','P3 NM'];
+  const donutVals    =[urgentHandled, p3nmHandled];
+  const donutColors  =['#FF6400','#5000b3'];
+
+  chartDonutInst=new Chart(document.getElementById('chartDonut').getContext('2d'),{
+    type:'doughnut',
+    data:{ labels:donutLabels, datasets:[{ data:donutVals, backgroundColor:donutColors, borderWidth:2, borderColor:'#ffffff', hoverOffset:6 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'68%',
+      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a1028', titleColor:'#fff', bodyColor:'#e0d8f0', padding:10, cornerRadius:8, callbacks:{ label:ctx=>`${ctx.label}: ${ctx.raw} tickets` } } }
+    }
+  });
+  document.getElementById('donutLegend').innerHTML=donutLabels.map((l,i)=>`
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${donutColors[i]};border-radius:50%;"></div>
+      <div><div style="font-size:12px;font-weight:700;color:var(--text);">${donutVals[i]}</div><div style="font-size:10px;color:var(--muted);">${l}</div></div>
+    </div>`).join('');
+
+  /* 3. KPI Strip values */
+  const urgentAgents = agentData.filter(a=>!isP3NM(a));
+  const p3nmAgents   = agentData.filter(a=>isP3NM(a));
+  const urgH = urgentAgents.reduce((s,a)=>s+(a.handled||0),0);
+  const urgS = urgentAgents.reduce((s,a)=>s+(a.solved||0),0);
+  const p3H  = p3nmAgents.reduce((s,a)=>s+(a.handled||0),0);
+  const p3S  = p3nmAgents.reduce((s,a)=>s+(a.solved||0),0);
+
+  const urgRate = urgH>0 ? Math.round((urgS/urgH)*100)+'%' : '—';
+  const p3Rate  = p3H>0  ? Math.round((p3S/p3H)*100)+'%'  : '—';
+
+  document.getElementById('kpiHandled').textContent       = totHandled||'—';
+  document.getElementById('kpiSolved').textContent        = totSolved||'—';
+  document.getElementById('kpiRate').textContent          = totRate!==null ? Math.round(totRate)+'%' : '—';
+  document.getElementById('kpiUrgentHandled').textContent = urgH||'—';
+  document.getElementById('kpiUrgentSolved').textContent  = urgS||'—';
+  document.getElementById('kpiUrgentRate').textContent    = urgRate;
+  document.getElementById('kpiP3nmHandled').textContent   = p3H||'—';
+  document.getElementById('kpiP3nmSolved').textContent    = p3S||'—';
+  document.getElementById('kpiP3nmRate').textContent      = p3Rate;
+
+  /* Force resize after layout settles */
+  requestAnimationFrame(()=>{ [chartBarInst,chartDonutInst].forEach(c=>c&&c.resize()); });
+  setTimeout(()=>{ [chartBarInst,chartDonutInst].forEach(c=>c&&c.resize()); },150);
+}
+
+function destroyCharts(){
+  [chartBarInst,chartDonutInst].forEach(c=>{ if(c) c.destroy(); });
+  chartBarInst=chartDonutInst=null;
+}
+
+/* ── RENDER REPORT ── */
+function renderReport(){
+  const dateVal=document.getElementById('reportDate').value;
+  let dateDisplay='Date not set';
+  if(dateVal){ const d=new Date(dateVal+'T00:00:00'); dateDisplay=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}); }
+  document.getElementById('rptDateBadge').textContent=dateDisplay;
+  document.getElementById('footerDate').textContent=dateDisplay;
+
+  const v=id=>parseNum(document.getElementById(id).value);
+  const disp=(id,val,cls='')=>{ const el=document.getElementById(id); el.textContent=val===null?'—':val; if(cls) el.className='rpt-kpi-val '+cls; };
+  disp('dispActual',  v('attActual'));
+  disp('dispExpected',v('attExpected'));
+  disp('dispLeave',   v('attLeave'),'orange');
+  disp('dispRestDay', v('attRestDay'),'muted');
+
+  const sla=id=>{
+    const v=document.getElementById(id).value.trim();
+    if(!v) return '—';
+    // Append % if the value is purely numeric
+    return /^\d+(\.\d+)?$/.test(v) ? v+'%' : v;
+  };
+  ['P1','P2','P3','P4','P3NM'].forEach(k=>document.getElementById('disp'+k).textContent=sla('sla'+k));
+
+  latestAttendance = {
+    actual:  parseNum(document.getElementById('attActual').value),
+    expected:parseNum(document.getElementById('attExpected').value),
+    leave:   parseNum(document.getElementById('attLeave').value),
+    restDay: parseNum(document.getElementById('attRestDay').value),
+  };
+
+  renderAgentTable();
+  updateSubjectLine(dateVal);
+  showToast('Report generated');
+}
+
+/* ── RESET ── */
+function resetAll(){
+  document.querySelectorAll('.sidebar input').forEach(el=>el.value='');
+  agentData=null;
+  document.getElementById('agentFileInput').value='';
+  document.getElementById('agentFileName').textContent='';
+  document.getElementById('agentUploadBox').classList.remove('loaded');
+  document.getElementById('miniChartsCard').style.display='none';
+  document.getElementById('analysisBody').innerHTML='<p class="analysis-placeholder">Generate the report first, then click <strong>Generate</strong> here to summarize today\'s observations.</p>';
+  document.getElementById('analysisStatus').textContent='Not yet generated';
+  latestAttendance={actual:null,expected:null,leave:null,restDay:null};
+  destroyCharts();
+  renderReport();
+  showToast('All fields cleared');
+}
+
+/* ── EXPORT ── */
+async function doExportImage(action){
+  document.getElementById('rptExportMenu').classList.remove('open');
+  const zone=document.getElementById('captureZone');
+  document.getElementById('spinner').classList.add('show');
+  const footer=document.getElementById('captureFooter');
+  footer.style.display='';
+  document.getElementById('footerGenTime').textContent=new Date().toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
+  const workspace=document.querySelector('.workspace');
+  const prevOF=workspace?workspace.style.overflowY:'';
+  const prevH=workspace?workspace.style.height:'';
+  if(workspace){ workspace.style.overflowY='visible'; workspace.style.height='auto'; workspace.scrollTop=0; void workspace.offsetHeight; }
+  const toHide=['analysisBtns'];
+  toHide.forEach(id=>{ const el=document.getElementById(id); if(el) el.style.visibility='hidden'; });
+  const analysisBody=document.getElementById('analysisBody');
+  const prevBorder=analysisBody?analysisBody.style.border:'';
+  const prevOutline=analysisBody?analysisBody.style.outline:'';
+  if(analysisBody){ analysisBody.style.border='none'; analysisBody.style.outline='none'; }
+  await new Promise(r=>setTimeout(r,150));
+  await new Promise(r=>requestAnimationFrame(r));
+  [chartBarInst,chartDonutInst].forEach(c=>c&&c.resize());
+  await new Promise(r=>requestAnimationFrame(r));
+  try{
+    const canvas=await html2canvas(zone,{backgroundColor:'#f4f3f8',scale:2,useCORS:true,logging:false,scrollX:0,scrollY:-window.scrollY,windowWidth:document.documentElement.clientWidth,windowHeight:zone.scrollHeight});
+    footer.style.display='none';
+    if(workspace){ workspace.style.overflowY=prevOF; workspace.style.height=prevH; }
+    toHide.forEach(id=>{ const el=document.getElementById(id); if(el) el.style.visibility=''; });
+    if(analysisBody){ analysisBody.style.border=prevBorder; analysisBody.style.outline=prevOutline; }
+    const done=()=>document.getElementById('spinner').classList.remove('show');
+    if(action==='copy'){
+      canvas.toBlob(async blob=>{ try{ await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]); showToast('Image copied!'); } catch{ showToast('Downloading instead'); downloadBlob(blob); } done(); });
+    } else {
+      canvas.toBlob(blob=>{ downloadBlob(blob); showToast('Downloaded!'); done(); });
+    }
+  }catch(e){ console.error(e); footer.style.display='none'; if(workspace){ workspace.style.overflowY=prevOF; workspace.style.height=prevH; } document.getElementById('spinner').classList.remove('show'); showToast('Export failed'); }
+}
+function downloadBlob(blob){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`CSUrgent_EOD_${new Date().toISOString().slice(0,10)}.png`; a.click(); URL.revokeObjectURL(a.href); }
+
+/* ── SUBJECT LINE ── */
+function updateSubjectLine(dateVal){
+  const d=dateVal?new Date(dateVal+'T00:00:00'):null;
+  const dateStr=d&&!isNaN(d)?d.toLocaleDateString('en-US',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):'—';
+  document.getElementById('subjectLineText').textContent=`Workforce End-of-Day Report (CS Urgent) | ${dateStr}`;
+  document.getElementById('subjectDate').textContent=dateStr;
+}
+function copySubjectLine(){
+  const text=document.getElementById('subjectLineText')?.textContent||'';
+  navigator.clipboard.writeText(text).then(()=>showToast('Subject line copied!')).catch(()=>{ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showToast('Subject line copied!'); });
+}
+
+
+/* ── EOD INSIGHTS ── */
+let latestAttendance = { actual: null, expected: null, leave: null, restDay: null };
+
+function rateBand(rate){ if(rate===null) return null; if(rate>=80) return 'a strong'; if(rate>=60) return 'a moderate'; return 'a soft'; }
+
+function buildAttendanceParagraph(){
+  const { actual, expected, leave } = latestAttendance;
+  if(actual===null && expected===null) return null;
+  const parts = [];
+  if(actual!==null && expected!==null){
+    if(actual >= expected){
+      parts.push(`Attendance for the day was at or above the expected headcount, so staffing was not a limiting factor.`);
+    } else {
+      const gap = expected - actual;
+      const ratio = gap / expected;
+      if(ratio > 0.25){
+        parts.push(`Attendance came in noticeably under the expected count today — worth factoring in when reviewing overall output.`);
+      } else {
+        parts.push(`Attendance was slightly under the expected count, a modest gap that likely had limited impact on the day's output.`);
+      }
+    }
+  }
+  if(leave!==null && leave>0){
+    parts.push(`Some of the team was on leave today, which should be considered when comparing volume against a fully-staffed day.`);
+  }
+  return parts.length ? parts.join(' ') : null;
+}
+
+function buildPerformanceParagraph(){
+  if(!agentData || !agentData.length) return null;
+  let totHandled=0, totSolved=0;
+  agentData.forEach(a=>{ totHandled+=(a.handled||0); totSolved+=(a.solved||0); });
+  const totRate = totHandled>0?(totSolved/totHandled)*100:null;
+  const band = rateBand(totRate);
+  if(!band) return null;
+
+  const withSolved = agentData.filter(a=>a.solved!==null&&a.solved>0);
+  const total = agentData.length;
+  const parts = [];
+
+  parts.push(`The team closed the day at ${band} resolution pace — ${totSolved} out of ${totHandled} tickets handled were solved.`);
+
+  if(withSolved.length === total){
+    parts.push('Every agent on the roster logged at least one resolved ticket, showing broad participation across the team.');
+  } else if(withSolved.length / total >= 0.6){
+    parts.push('Most agents contributed resolved tickets today, with output reasonably spread across the roster.');
+  } else if(withSolved.length > 0){
+    parts.push('Resolved-ticket activity was concentrated in a smaller portion of the team — worth a quick check on agent task assignments.');
+  }
+
+  return parts.join(' ');
+}
+
+function buildTaskBreakdownParagraph(){
+  if(!agentData || !agentData.length) return null;
+  const urgentAgents = agentData.filter(a=>!isP3NM(a));
+  const p3nmAgents   = agentData.filter(a=>isP3NM(a));
+  if(!urgentAgents.length && !p3nmAgents.length) return null;
+
+  const urgentHandled = urgentAgents.reduce((s,a)=>s+(a.handled||0),0);
+  const p3nmHandled   = p3nmAgents.reduce((s,a)=>s+(a.handled||0),0);
+  const urgentSolved  = urgentAgents.reduce((s,a)=>s+(a.solved||0),0);
+  const p3nmSolved    = p3nmAgents.reduce((s,a)=>s+(a.solved||0),0);
+
+  const urgentRate = urgentHandled>0?(urgentSolved/urgentHandled)*100:null;
+  const p3nmRate   = p3nmHandled>0?(p3nmSolved/p3nmHandled)*100:null;
+
+  const parts = [];
+  if(urgentHandled>0 && p3nmHandled>0){
+    const total = urgentHandled + p3nmHandled;
+    const urgentPct = Math.round((urgentHandled/total)*100);
+    parts.push(`Workload split ${urgentPct}% Regular Urgent vs ${100-urgentPct}% P3 NM by tickets handled.`);
+  }
+  if(urgentRate!==null && p3nmRate!==null){
+    if(urgentRate > p3nmRate + 10){
+      parts.push(`Regular Urgent agents resolved at a higher rate (${Math.round(urgentRate)}%) compared to the P3 NM group (${Math.round(p3nmRate)}%).`);
+    } else if(p3nmRate > urgentRate + 10){
+      parts.push(`The P3 NM group outpaced Regular Urgent on resolution rate (${Math.round(p3nmRate)}% vs ${Math.round(urgentRate)}%).`);
+    } else {
+      parts.push(`Resolution rates were comparable between Regular Urgent (${Math.round(urgentRate)}%) and P3 NM (${Math.round(p3nmRate)}%) groups.`);
+    }
+  }
+  return parts.length ? parts.join(' ') : null;
+}
+
+function buildSLAParagraph(){
+  const slaVals = ['P1','P2','P3','P4','P3NM'].map(k=>({
+    label: k==='P3NM'?'P3 NM':k,
+    val: document.getElementById('sla'+k).value.trim()
+  })).filter(s=>s.val && s.val!=='—');
+  if(!slaVals.length) return null;
+  return 'SLA readings for today: ' + slaVals.map(s=>s.label+' at '+s.val).join(', ') + '.';
+}
+
+function generateInsights(){
+  const btn = document.getElementById('analysisGenBtn');
+  const body = document.getElementById('analysisBody');
+  const status = document.getElementById('analysisStatus');
+
+  const hasData = (agentData&&agentData.length) || latestAttendance.actual!==null;
+  if(!hasData){ showToast('Generate the report first before running insights'); return; }
+
+  btn.disabled = true;
+  status.textContent = 'Generating…';
+
+  const paragraphs = [
+    buildAttendanceParagraph(),
+    buildPerformanceParagraph(),
+    buildTaskBreakdownParagraph(),
+    buildSLAParagraph(),
+  ].filter(Boolean);
+
+  if(!paragraphs.length){
+    body.innerHTML = '<p class="analysis-placeholder">Not enough data to form observations — fill in the sidebar fields and upload the agent file, then try again.</p>';
+  } else {
+    body.innerHTML = paragraphs.map(p=>`<p>${p}</p>`).join('');
+  }
+
+  const now = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  status.textContent = `Generated at ${now} · click text above to edit`;
+  btn.disabled = false;
+}
+
+/* ── INIT ── */
+(function(){ document.getElementById('reportDate').value=new Date().toISOString().slice(0,10); renderReport(); })();
+</script>
+</body>
+</html>
